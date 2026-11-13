@@ -1,0 +1,21 @@
+{
+  "name": "experiments",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js help",
+    "login": "node index.js login",
+    "refresh": "node index.js refresh",
+    "schedule": "node index.js schedule",
+    "status": "node index.js status"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "playwright": "^1.65.0"
+  }
+}
