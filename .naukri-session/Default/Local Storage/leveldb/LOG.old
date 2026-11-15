@@ -1,3 +1,18 @@
-2026/11/13-18:04:27.703 5d08 Reusing MANIFEST C:\Users\Asus-2025\experiments\.naukri-session\Default\Local Storage\leveldb/MANIFEST-000001
-2026/11/13-18:04:27.705 5d08 Recovering log #7
-2026/11/13-18:04:27.707 5d08 Reusing old log C:\Users\Asus-2025\experiments\.naukri-session\Default\Local Storage\leveldb/000007.log 
+2026/11/16-00:41:35.369 3fbc Reusing MANIFEST C:\Users\Asus-2025\experiments\naukriin\naukri-refresh\.naukri-session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/16-00:41:35.371 3fbc Recovering log #7
+2026/11/16-00:41:35.373 3fbc Level-0 table #10: started
+2026/11/16-00:41:35.385 3fbc Level-0 table #10: 68753 bytes OK
+2026/11/16-00:41:35.402 3fbc Recovering log #9
+2026/11/16-00:41:35.408 3fbc Level-0 table #11: started
+2026/11/16-00:41:35.421 3fbc Level-0 table #11: 114758 bytes OK
+2026/11/16-00:41:35.436 3fbc Delete type=0 #7
+2026/11/16-00:41:35.436 3fbc Delete type=0 #9
+2026/11/16-00:41:35.438 30e0 Compacting 5@0 + 0@1 files
+2026/11/16-00:41:35.450 30e0 Generated table #13@0: 53 keys, 190012 bytes
+2026/11/16-00:41:35.450 30e0 Compacted 5@0 + 0@1 files => 190012 bytes
+2026/11/16-00:41:35.454 30e0 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/11/16-00:41:35.456 30e0 Delete type=2 #3
+2026/11/16-00:41:35.456 30e0 Delete type=2 #6
+2026/11/16-00:41:35.456 30e0 Delete type=2 #8
+2026/11/16-00:41:35.456 30e0 Delete type=2 #10
+2026/11/16-00:41:35.456 30e0 Delete type=2 #11

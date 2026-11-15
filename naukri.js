@@ -169,13 +169,13 @@ async function refreshProfile(options = {}) {
 
           // Find save button specifically inside the open lightbox or form
           const saveBtn = await page.locator('.lightbox button:has-text("Save"), .lightbox .btn-dark-ot, button[id*="save"], button[id*="submit"]').last();
-          if (await saveBtn.count() > 0) {
-            await saveBtn.click();
-            await page.waitForTimeout(2000);
-            refreshed = true;
-            detailMsg = 'Resume Headline updated and saved successfully!';
-            console.log(`SUCCESS: ${detailMsg}`);
-          }
+            if (await saveBtn.count() > 0) {
+              await saveBtn.click();
+              await page.waitForTimeout(2000);
+              refreshed = true;
+              detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
+              console.log(detailMsg);
+            }
         }
       }
     } catch (err) {
@@ -189,7 +189,6 @@ async function refreshProfile(options = {}) {
       if (modDateElem) {
         lastUpdatedText = await modDateElem.textContent();
         lastUpdatedText = lastUpdatedText.trim();
-        console.log(`Profile Status: ${lastUpdatedText}`);
       }
     } catch (e) {}
 
