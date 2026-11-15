@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       - name: Install Playwright Chromium & System Dependencies
-        run: npx --yes playwright install --with-deps chromium
+        run: npx npm exec playwright install --with-deps chromium
 
       - name: Run Profile Refresh
         env:
