@@ -26,9 +26,8 @@ jobs:
 
       - name: Install Playwright Chromium & System Dependencies
         run: |
-          npm install -g playwright
-          playwright install --with-deps chromium
-          ls -R /home/runner/.cache/ms-playwright/
+            npm install -g playwright
+            npx playwright install chromium --with-deps
         shell: bash
 
       - name: Run Profile Refresh
