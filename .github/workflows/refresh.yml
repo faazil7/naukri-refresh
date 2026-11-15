@@ -23,7 +23,7 @@ jobs:
 
       - name: Install Playwright Chromium & System Dependencies
         run: |
-          npx playwright install --with-deps chromium
+          npx npx playwright install --with-deps chromium
         shell: bash
 
       - name: Run Profile Refresh
