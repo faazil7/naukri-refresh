@@ -162,36 +162,26 @@ async function refreshProfile(options = {}) {
       await page.waitForTimeout(2000);
       await page.screenshot({ path: 'profile-debug.png', fullPage: true }).catch(() => {});
 
-      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon, [class*="edit"]').first();
-      
-      if (await headlineEditBtn.count() === 0) {
-        const editEls = await page.$$('span, a, div, em, button');
-        for (const el of editEls) {
-          const text = await el.textContent().catch(() => '');
-          if (text && (text.trim() === 'Edit' || text.trim() === 'edit')) {
-            headlineEditBtn = el;
-            break;
-          }
-        }
-      }
-
       let clicked = false;
-      if (headlineEditBtn) {
-        if (typeof headlineEditBtn.click === 'function') {
-          await headlineEditBtn.click();
-          clicked = true;
-        } else if (typeof headlineEditBtn.first === 'function' && await headlineEditBtn.count() > 0) {
-          await headlineEditBtn.first().click();
+
+      // Try finding element with explicit timeout handling (avoiding 30s default timeout hang)
+      try {
+        const headlineEditBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon, [class*="edit"]');
+        if (await headlineEditBtn.count() > 0) {
+          await headlineEditBtn.first().click({ timeout: 5000 });
           clicked = true;
         }
+      } catch (e) {
+        console.log('Primary locator click timed out or failed:', e.message);
       }
 
       if (!clicked) {
-        // Ultimate fallback: direct JS click on first visible element with class containing 'edit' or text 'Edit'
+        // Fallback: text scan in browser context
         clicked = await page.evaluate(() => {
-          const allEls = Array.from(document.querySelectorAll('*'));
+          const allEls = Array.from(document.querySelectorAll('span, a, div, em, button, i'));
           for (const el of allEls) {
-            if (el.textContent && el.textContent.trim() === 'Edit' && el.offsetParent !== null) {
+            const text = el.textContent ? el.textContent.trim() : '';
+            if ((text === 'Edit' || text === 'edit') && el.offsetParent !== null) {
               el.click();
               return true;
             }
