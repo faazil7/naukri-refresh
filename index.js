@@ -57,7 +57,6 @@ async function main() {
       const res = await naukri.refreshProfile({ headless });
       if (res.success) {
         console.log('\n[RESULT] Profile refresh completed successfully!');
-        if (res.lastUpdated) console.log(`[STATUS] ${res.lastUpdated}`);
       } else {
         console.log('\n[RESULT] Profile refresh failed:', res.reason || res.error);
         if (res.reason === 'NOT_LOGGED_IN') {

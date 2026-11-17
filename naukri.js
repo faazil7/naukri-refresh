@@ -243,8 +243,7 @@ async function refreshProfile(options = {}) {
     try {
       const modDateElem = await page.$('.mod-date, .last-updated, div:has-text("Profile last updated"), span:has-text("Profile last updated")');
       if (modDateElem) {
-        lastUpdatedText = await modDateElem.textContent();
-        lastUpdatedText = lastUpdatedText.trim();
+        lastUpdatedText = (await modDateElem.textContent() || '').trim();
       }
     } catch (e) {}
 
@@ -254,7 +253,7 @@ async function refreshProfile(options = {}) {
       return {
         success: true,
         message: detailMsg,
-        lastUpdated: lastUpdatedText,
+        lastUpdated: 'SUCCESS',
         timestamp: new Date().toISOString()
       };
     } else {

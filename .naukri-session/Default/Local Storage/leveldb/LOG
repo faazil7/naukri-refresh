@@ -1,6 +1,6 @@
-2026/11/17-17:36:37.044 acc Reusing MANIFEST C:\Users\Asus-2025\experiments\naukriin\naukri-refresh\.naukri-session\Default\Local Storage\leveldb/MANIFEST-000001
-2026/11/17-17:36:37.045 acc Recovering log #113
-2026/11/17-17:36:37.051 acc Reusing old log C:\Users\Asus-2025\experiments\naukriin\naukri-refresh\.naukri-session\Default\Local Storage\leveldb/000113.log 
-2026/11/17-17:36:49.648 5510 Level-0 table #117: started
-2026/11/17-17:36:49.664 5510 Level-0 table #117: 106660 bytes OK
-2026/11/17-17:36:49.683 5510 Delete type=0 #113
+2026/11/17-21:13:17.079 5100 Reusing MANIFEST C:\Users\Asus-2025\experiments\naukriin\naukri-refresh\.naukri-session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/17-21:13:17.080 5100 Recovering log #123
+2026/11/17-21:13:17.083 5100 Reusing old log C:\Users\Asus-2025\experiments\naukriin\naukri-refresh\.naukri-session\Default\Local Storage\leveldb/000123.log 
+2026/11/17-21:13:29.459 5f60 Level-0 table #127: started
+2026/11/17-21:13:29.467 5f60 Level-0 table #127: 98255 bytes OK
+2026/11/17-21:13:29.470 5f60 Delete type=0 #123
