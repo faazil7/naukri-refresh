@@ -1,36 +1,31 @@
-name: Naukri Gulf Profile Auto-Refresh
+name: Naukri Profile Auto-Refresh
 
 on:
   schedule:
-    - cron: '0 2-18 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Install Playwright Chromium & System Dependencies
-        run: |
-          npm install -g playwright
-          playwright install --with-deps chromium
-          ls -R /home/runner/.cache/ms-playwright/
-        shell: bash
+      - name: Install Playwright Browsers & System Dependencies
+        run: npx playwright install chromium --with-deps
 
       - name: Run Profile Refresh
+        run: node index.js refresh
         env:
           NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
           NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
           HEADLESS: 'true'
-        run: node index.js refresh
