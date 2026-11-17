@@ -110,13 +110,21 @@ async function refreshProfile(options = {}) {
 
     console.log('Navigating to Naukri Profile page...');
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(5000); // Increased wait time
+    await page.waitForTimeout(10000); // Increased wait time to 10s
+
+    // Debug: Log the URL we landed on
+    console.log('Current URL:', page.url());
 
     // Scroll down progressively to ensure all sections load
-    for (let i = 0; i < 6; i++) {
-        await page.evaluate((y) => window.scrollTo(0, y), i * 500);
+    for (let i = 0; i < 8; i++) {
+        await page.evaluate((y) => window.scrollTo(0, y), i * 600);
         await page.waitForTimeout(1000);
     }
+    
+    // Debug: Take a screenshot to see what the bot sees
+    await page.screenshot({ path: 'profile-debug.png', fullPage: true }).catch(() => {});
+    console.log('Screenshot taken to debug page load.');
+
 
     // Check login status
     if (page.url().includes('login') || page.url().includes('nlogin')) {
