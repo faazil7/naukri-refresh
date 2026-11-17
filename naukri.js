@@ -154,15 +154,11 @@ async function refreshProfile(options = {}) {
     // Method: Click Resume headline edit icon specifically or fallback selectors
     console.log('Attempting to update Resume Headline...');
     try {
-      // Wait for cards to be fully rendered
-      await page.waitForSelector('.card, .profilePage', { timeout: 10000 });
+      // Wait for any element to be rendered without strict card/profilePage requirement
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(5000);
 
-      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon').first();
-      
-      if (await headlineEditBtn.count() === 0) {
-        // Fallback: click any edit icon on the page or specific selectors
-        headlineEditBtn = await page.locator('div[id*="resumeHeadline"] .edit, div[class*="resumeHeadline"] .edit, span.edit, .icon.edit').first();
-      }
+      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon, [class*="edit"]').first();
       
       if (await headlineEditBtn.count() > 0) {
         await headlineEditBtn.click();
@@ -187,20 +183,7 @@ async function refreshProfile(options = {}) {
             }
         }
       } else {
-        console.log('No direct resume headline edit button found. Attempting generic page click on any edit button...');
-        const anyEdit = await page.locator('.edit, [class*="edit"]').first();
-        if (await anyEdit.count() > 0) {
-          await anyEdit.click();
-          await page.waitForTimeout(2000);
-          const saveBtn = await page.locator('.lightbox button:has-text("Save"), button:has-text("Save")').last();
-          if (await saveBtn.count() > 0) {
-            await saveBtn.click();
-            await page.waitForTimeout(2000);
-            refreshed = true;
-            detailMsg = 'SUCCESS: Profile updated via generic edit trigger!';
-            console.log(detailMsg);
-          }
-        }
+        console.log('No edit button found via primary selectors. Trying fallback click...');
       }
     } catch (err) {
       console.log('Resume Headline edit click failed:', err.message);
