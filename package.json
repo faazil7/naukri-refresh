@@ -8,7 +8,8 @@
     "login": "node index.js login",
     "refresh": "node index.js refresh",
     "schedule": "node index.js schedule",
-    "status": "node index.js status"
+    "status": "node index.js status",
+    "india:refresh": "node index-india.js"
   },
   "keywords": [],
   "author": "",
