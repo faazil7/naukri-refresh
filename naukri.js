@@ -151,48 +151,56 @@ async function refreshProfile(options = {}) {
     let refreshed = false;
     let detailMsg = '';
 
-    // Method: Click Resume headline edit icon specifically or fallback selectors
-    console.log('Attempting to update Resume Headline...');
+    // Method: Target Resume Headline specifically
+    console.log('Attempting to update Resume Headline specifically...');
     try {
       await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(3000);
 
-      // Scroll down to trigger lazy load and capture screenshot for debugging
-      await page.evaluate(() => window.scrollTo(0, 500));
-      await page.waitForTimeout(2000);
-      await page.screenshot({ path: 'profile-debug.png', fullPage: true }).catch(() => {});
+      // Scroll to Resume Headline area
+      await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('*'));
+        const headlineEl = els.find(el => el.textContent && el.textContent.includes('Resume headline'));
+        if (headlineEl) headlineEl.scrollIntoView();
+      });
+      await page.waitForTimeout(1000);
 
+      // Dump all edit buttons to console to see why they aren't matching
+      const allEdits = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('.edit, [class*="edit"]')).map(el => ({
+            text: el.textContent,
+            className: el.className
+        }));
+      });
+      console.log('All potential edit buttons found:', allEdits);
+
+      // Attempt to find the Resume Headline card and click its edit icon
+      const resumeCard = page.locator('.card:has-text("Resume")');
+      const editBtn = resumeCard.locator('[role="button"]:has-text("editOneTheme"), [tabindex="0"]:has-text("editOneTheme"), .edit').first();
+      
       let clicked = false;
-
-      // Try finding element with explicit timeout handling (avoiding 30s default timeout hang)
-      try {
-        const headlineEditBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon, [class*="edit"]');
-        if (await headlineEditBtn.count() > 0) {
-          await headlineEditBtn.first().click({ timeout: 5000 });
-          clicked = true;
+      if (await editBtn.count() > 0) {
+        await editBtn.click({ force: true });
+        clicked = true;
+      } else {
+        // Fallback to searching all edit buttons and checking if they belong to the Resume Headline card
+        const editButtons = page.locator('.edit, [class*="edit"]');
+        for (let i = 0; i < await editButtons.count(); i++) {
+           const btn = editButtons.nth(i);
+           // Try clicking and check if a textarea appears
+           await btn.click();
+           await page.waitForTimeout(1000);
+           const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+           if (textarea) {
+             clicked = true;
+             break;
+           } else {
+             // Close modal
+             const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+             if (closeBtn) await closeBtn.click().catch(() => {});
+             await page.waitForTimeout(500);
+           }
         }
-      } catch (e) {
-        console.log('Primary locator click timed out or failed:', e.message);
-      }
-
-      if (!clicked) {
-        // Fallback: text scan in browser context
-        clicked = await page.evaluate(() => {
-          const allEls = Array.from(document.querySelectorAll('span, a, div, em, button, i'));
-          for (const el of allEls) {
-            const text = el.textContent ? el.textContent.trim() : '';
-            if ((text === 'Edit' || text === 'edit') && el.offsetParent !== null) {
-              el.click();
-              return true;
-            }
-          }
-          const editIcon = document.querySelector('.edit, [class*="edit"]');
-          if (editIcon && editIcon.offsetParent !== null) {
-            editIcon.click();
-            return true;
-          }
-          return false;
-        });
       }
 
       if (clicked) {
@@ -202,34 +210,32 @@ async function refreshProfile(options = {}) {
         if (textarea) {
           let text = await textarea.inputValue();
           text = text.trim();
+          
           let newText = text.endsWith('.') ? text.slice(0, -1) : text + '.';
+          
+          console.log(`==================================================`);
+          console.log(`[UPDATE] Resume Headline Sentence Updated:`);
+          console.log(`  Before: "${text}"`);
+          console.log(`  After:  "${newText}"`);
+          console.log(`==================================================`);
+          
           await textarea.fill(newText);
           await page.waitForTimeout(500);
 
-          // Find save button specifically inside the open lightbox or form
-          const saveBtn = await page.locator('.lightbox button:has-text("Save"), .lightbox .btn-dark-ot, button[id*="save"], button[id*="submit"], button:has-text("Save")').last();
-            if (await saveBtn.count() > 0) {
-              await saveBtn.click();
-              await page.waitForTimeout(2000);
-              refreshed = true;
-              detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
-              console.log(detailMsg);
-            }
-        } else {
-          const saveBtn = await page.locator('button:has-text("Save"), .btn-dark-ot').last();
+          const saveBtn = await page.locator('.lightbox button:has-text("Save"), button:has-text("Save")').last();
           if (await saveBtn.count() > 0) {
             await saveBtn.click();
             await page.waitForTimeout(2000);
             refreshed = true;
-            detailMsg = 'SUCCESS: Profile updated via fallback modal save!';
+            detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
             console.log(detailMsg);
           }
         }
       } else {
-        console.log('No edit button found via primary selectors, text scan, or JS fallback.');
+        console.log('Could not locate Resume Headline edit button.');
       }
     } catch (err) {
-      console.log('Resume Headline edit click failed:', err.message);
+      console.log('Resume Headline update failed:', err.message);
     }
 
     // Check last updated text on profile header
