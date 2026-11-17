@@ -168,17 +168,19 @@ async function refreshProfile(options = {}) {
 
     // Debug: Log the page content structure to identify edit triggers
     const pageStructure = await page.evaluate(() => {
-        // Log EVERYTHING that might be interactive
+        // Log the ENTIRE body text to verify if the profile content is loaded
+        console.log('Body Text Snippet:', document.body.textContent.substring(0, 500));
+        
         return Array.from(document.querySelectorAll('*'))
-            .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0 && (el.className && typeof el.className === 'string' && el.className.includes('edit') || el.role === 'button' || el.tagName === 'BUTTON' || el.onclick || el.getAttribute('data-ga-track')))
+            .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0)
             .map(el => ({
                 tagName: el.tagName,
                 className: el.className,
-                textContent: el.textContent ? el.textContent.trim() : '',
+                textContent: el.textContent ? el.textContent.trim().substring(0, 50) : '',
                 id: el.id
             }));
     });
-    console.log('Detected potential interactive elements:', JSON.stringify(pageStructure, null, 2));
+    console.log('Detected ALL visible elements count:', pageStructure.length);
 
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
