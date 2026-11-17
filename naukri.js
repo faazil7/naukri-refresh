@@ -109,7 +109,7 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
-    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(10000); // Increased wait time to 10s
 
     // Debug: Log the URL we landed on
@@ -166,6 +166,18 @@ async function refreshProfile(options = {}) {
     let refreshed = false;
     let detailMsg = '';
 
+    // Debug: Log the page content structure to identify edit triggers
+    const pageStructure = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('*'))
+            .filter(el => el.className && typeof el.className === 'string' && el.className.includes('edit'))
+            .map(el => ({
+                tagName: el.tagName,
+                className: el.className,
+                textContent: el.textContent ? el.textContent.trim() : ''
+            }));
+    });
+    console.log('Detected potential edit elements:', JSON.stringify(pageStructure, null, 2));
+
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
     try {
@@ -189,22 +201,23 @@ async function refreshProfile(options = {}) {
       });
       console.log('All potential edit buttons found:', allEdits);
 
-      // Attempt to find the Resume Headline card and click its edit icon
+      // Attempt to find the specific Resume Headline edit button
       const resumeCard = page.locator('.card:has-text("Resume")');
-      const editBtn = resumeCard.locator('[role="button"]:has-text("editOneTheme"), [tabindex="0"]:has-text("editOneTheme"), .edit').first();
+      const editBtn = resumeCard.locator('.edit, [class*="edit"]').first();
       
       let clicked = false;
       if (await editBtn.count() > 0) {
-        await editBtn.click({ force: true });
+        await editBtn.first().click({ force: true });
         clicked = true;
+        console.log('Clicked edit button specifically in Resume card.');
       } else {
-        // Fallback to searching all edit buttons and checking if they belong to the Resume Headline card
+        // Fallback: iterate and check if the modal contains the textarea
         const editButtons = page.locator('.edit, [class*="edit"]');
         for (let i = 0; i < await editButtons.count(); i++) {
            const btn = editButtons.nth(i);
            // Try clicking and check if a textarea appears
            await btn.click();
-           await page.waitForTimeout(1000);
+           await page.waitForTimeout(2000); // Wait longer for modal
            const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
            if (textarea) {
              clicked = true;
@@ -213,7 +226,7 @@ async function refreshProfile(options = {}) {
              // Close modal
              const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
              if (closeBtn) await closeBtn.click().catch(() => {});
-             await page.waitForTimeout(500);
+             await page.waitForTimeout(1000);
            }
         }
       }
