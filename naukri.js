@@ -151,15 +151,20 @@ async function refreshProfile(options = {}) {
     let refreshed = false;
     let detailMsg = '';
 
-    // Method: Click Resume headline edit icon specifically
+    // Method: Click Resume headline edit icon specifically or fallback selectors
     console.log('Attempting to update Resume Headline...');
     try {
-      const headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit').first();
+      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit').first();
+      if (await headlineEditBtn.count() === 0) {
+        // Fallback: try finding any edit icon near resume headline
+        headlineEditBtn = await page.locator('div[id*="resumeHeadline"] .edit, div[class*="resumeHeadline"] .edit').first();
+      }
+      
       if (await headlineEditBtn.count() > 0) {
         await headlineEditBtn.click();
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(2000);
 
-        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea', { timeout: 5000 });
+        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea', { timeout: 5000 });
         if (textarea) {
           let text = await textarea.inputValue();
           text = text.trim();
@@ -168,7 +173,7 @@ async function refreshProfile(options = {}) {
           await page.waitForTimeout(500);
 
           // Find save button specifically inside the open lightbox or form
-          const saveBtn = await page.locator('.lightbox button:has-text("Save"), .lightbox .btn-dark-ot, button[id*="save"], button[id*="submit"]').last();
+          const saveBtn = await page.locator('.lightbox button:has-text("Save"), .lightbox .btn-dark-ot, button[id*="save"], button[id*="submit"], button:has-text("Save")').last();
             if (await saveBtn.count() > 0) {
               await saveBtn.click();
               await page.waitForTimeout(2000);
@@ -176,6 +181,22 @@ async function refreshProfile(options = {}) {
               detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
               console.log(detailMsg);
             }
+        }
+      } else {
+        // Fallback method: click Profile Summary edit if Resume headline card selector changed
+        console.log('Resume headline card not matched directly. Trying Profile Summary / general edit...');
+        const summaryEditBtn = await page.locator('.card:has-text("Profile summary") .edit, .card:has-text("Profile Summary") .edit').first();
+        if (await summaryEditBtn.count() > 0) {
+          await summaryEditBtn.click();
+          await page.waitForTimeout(2000);
+          const saveBtn = await page.locator('.lightbox button:has-text("Save"), button:has-text("Save")').last();
+          if (await saveBtn.count() > 0) {
+            await saveBtn.click();
+            await page.waitForTimeout(2000);
+            refreshed = true;
+            detailMsg = 'SUCCESS: Profile Summary re-saved successfully!';
+            console.log(detailMsg);
+          }
         }
       }
     } catch (err) {
