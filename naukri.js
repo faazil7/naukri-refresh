@@ -169,7 +169,8 @@ async function refreshProfile(options = {}) {
     // Debug: Log the page content structure to identify edit triggers
     const pageStructure = await page.evaluate(() => {
         // Log the ENTIRE body text to verify if the profile content is loaded
-        console.log('Body Text Snippet:', document.body.textContent.substring(0, 500));
+        const bodyText = document.body.textContent || "";
+        console.log('Body Text Snippet:', bodyText.substring(0, 1000));
         
         return Array.from(document.querySelectorAll('*'))
             .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0)
