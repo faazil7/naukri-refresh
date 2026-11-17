@@ -86,11 +86,12 @@ async function refreshProfile(options = {}) {
         const editButtons = page.locator('.edit, [class*="edit"]');
         for (let i = 0; i < await editButtons.count(); i++) {
            const btn = editButtons.nth(i);
-           await btn.click();
-           await page.waitForTimeout(2000);
+           await btn.click({ force: true }).catch(() => {});
+           await page.waitForTimeout(2000); // Wait longer for modal
            const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
            if (textarea) {
              clicked = true;
+             console.log('Successfully found edit trigger via fallback.');
              break;
            } else {
              const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
