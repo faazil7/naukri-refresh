@@ -154,10 +154,14 @@ async function refreshProfile(options = {}) {
     // Method: Click Resume headline edit icon specifically or fallback selectors
     console.log('Attempting to update Resume Headline...');
     try {
-      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit').first();
+      // Wait for cards to be fully rendered
+      await page.waitForSelector('.card, .profilePage', { timeout: 10000 });
+
+      let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon').first();
+      
       if (await headlineEditBtn.count() === 0) {
-        // Fallback: try finding any edit icon near resume headline
-        headlineEditBtn = await page.locator('div[id*="resumeHeadline"] .edit, div[class*="resumeHeadline"] .edit').first();
+        // Fallback: click any edit icon on the page or specific selectors
+        headlineEditBtn = await page.locator('div[id*="resumeHeadline"] .edit, div[class*="resumeHeadline"] .edit, span.edit, .icon.edit').first();
       }
       
       if (await headlineEditBtn.count() > 0) {
@@ -183,18 +187,17 @@ async function refreshProfile(options = {}) {
             }
         }
       } else {
-        // Fallback method: click Profile Summary edit if Resume headline card selector changed
-        console.log('Resume headline card not matched directly. Trying Profile Summary / general edit...');
-        const summaryEditBtn = await page.locator('.card:has-text("Profile summary") .edit, .card:has-text("Profile Summary") .edit').first();
-        if (await summaryEditBtn.count() > 0) {
-          await summaryEditBtn.click();
+        console.log('No direct resume headline edit button found. Attempting generic page click on any edit button...');
+        const anyEdit = await page.locator('.edit, [class*="edit"]').first();
+        if (await anyEdit.count() > 0) {
+          await anyEdit.click();
           await page.waitForTimeout(2000);
           const saveBtn = await page.locator('.lightbox button:has-text("Save"), button:has-text("Save")').last();
           if (await saveBtn.count() > 0) {
             await saveBtn.click();
             await page.waitForTimeout(2000);
             refreshed = true;
-            detailMsg = 'SUCCESS: Profile Summary re-saved successfully!';
+            detailMsg = 'SUCCESS: Profile updated via generic edit trigger!';
             console.log(detailMsg);
           }
         }
