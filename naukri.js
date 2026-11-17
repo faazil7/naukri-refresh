@@ -168,29 +168,34 @@ async function refreshProfile(options = {}) {
 
     // Debug: Log the page content structure to identify edit triggers
     const pageStructure = await page.evaluate(() => {
+        // Log EVERYTHING that might be interactive
         return Array.from(document.querySelectorAll('*'))
-            .filter(el => el.className && typeof el.className === 'string' && el.className.includes('edit'))
+            .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0 && (el.className && typeof el.className === 'string' && el.className.includes('edit') || el.role === 'button' || el.tagName === 'BUTTON' || el.onclick || el.getAttribute('data-ga-track')))
             .map(el => ({
                 tagName: el.tagName,
                 className: el.className,
-                textContent: el.textContent ? el.textContent.trim() : ''
+                textContent: el.textContent ? el.textContent.trim() : '',
+                id: el.id
             }));
     });
-    console.log('Detected potential edit elements:', JSON.stringify(pageStructure, null, 2));
+    console.log('Detected potential interactive elements:', JSON.stringify(pageStructure, null, 2));
 
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
     try {
       await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(5000); // Increased wait before attempt
 
       // Scroll to Resume Headline area
       await page.evaluate(() => {
         const els = Array.from(document.querySelectorAll('*'));
         const headlineEl = els.find(el => el.textContent && el.textContent.includes('Resume headline'));
-        if (headlineEl) headlineEl.scrollIntoView();
+        if (headlineEl) {
+            headlineEl.scrollIntoView();
+            console.log('Scrolled to headline');
+        }
       });
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
 
       // Dump all edit buttons to console to see why they aren't matching
       const allEdits = await page.evaluate(() => {
