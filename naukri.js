@@ -154,17 +154,61 @@ async function refreshProfile(options = {}) {
     // Method: Click Resume headline edit icon specifically or fallback selectors
     console.log('Attempting to update Resume Headline...');
     try {
-      // Wait for any element to be rendered without strict card/profilePage requirement
       await page.waitForLoadState('networkidle').catch(() => {});
       await page.waitForTimeout(5000);
 
+      // Scroll down to trigger lazy load and capture screenshot for debugging
+      await page.evaluate(() => window.scrollTo(0, 500));
+      await page.waitForTimeout(2000);
+      await page.screenshot({ path: 'profile-debug.png', fullPage: true }).catch(() => {});
+
       let headlineEditBtn = await page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume Headline") .edit, .card:has-text("Headline") .edit, span:has-text("Resume headline") ~ .edit, em.icon.edit, .edit.icon, [class*="edit"]').first();
       
-      if (await headlineEditBtn.count() > 0) {
-        await headlineEditBtn.click();
+      if (await headlineEditBtn.count() === 0) {
+        const editEls = await page.$$('span, a, div, em, button');
+        for (const el of editEls) {
+          const text = await el.textContent().catch(() => '');
+          if (text && (text.trim() === 'Edit' || text.trim() === 'edit')) {
+            headlineEditBtn = el;
+            break;
+          }
+        }
+      }
+
+      let clicked = false;
+      if (headlineEditBtn) {
+        if (typeof headlineEditBtn.click === 'function') {
+          await headlineEditBtn.click();
+          clicked = true;
+        } else if (typeof headlineEditBtn.first === 'function' && await headlineEditBtn.count() > 0) {
+          await headlineEditBtn.first().click();
+          clicked = true;
+        }
+      }
+
+      if (!clicked) {
+        // Ultimate fallback: direct JS click on first visible element with class containing 'edit' or text 'Edit'
+        clicked = await page.evaluate(() => {
+          const allEls = Array.from(document.querySelectorAll('*'));
+          for (const el of allEls) {
+            if (el.textContent && el.textContent.trim() === 'Edit' && el.offsetParent !== null) {
+              el.click();
+              return true;
+            }
+          }
+          const editIcon = document.querySelector('.edit, [class*="edit"]');
+          if (editIcon && editIcon.offsetParent !== null) {
+            editIcon.click();
+            return true;
+          }
+          return false;
+        });
+      }
+
+      if (clicked) {
         await page.waitForTimeout(2000);
 
-        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea', { timeout: 5000 });
+        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea', { timeout: 5000 }).catch(() => null);
         if (textarea) {
           let text = await textarea.inputValue();
           text = text.trim();
@@ -181,9 +225,18 @@ async function refreshProfile(options = {}) {
               detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
               console.log(detailMsg);
             }
+        } else {
+          const saveBtn = await page.locator('button:has-text("Save"), .btn-dark-ot').last();
+          if (await saveBtn.count() > 0) {
+            await saveBtn.click();
+            await page.waitForTimeout(2000);
+            refreshed = true;
+            detailMsg = 'SUCCESS: Profile updated via fallback modal save!';
+            console.log(detailMsg);
+          }
         }
       } else {
-        console.log('No edit button found via primary selectors. Trying fallback click...');
+        console.log('No edit button found via primary selectors, text scan, or JS fallback.');
       }
     } catch (err) {
       console.log('Resume Headline edit click failed:', err.message);
