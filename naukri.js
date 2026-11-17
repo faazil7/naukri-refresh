@@ -16,12 +16,13 @@ async function launchBrowser(options = {}) {
 
   const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, {
     headless: isHeadless,
-    viewport: { width: 1280, height: 800 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    viewport: { width: 1920, height: 1080 },
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     args: [
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',
-      '--disable-setuid-sandbox'
+      '--disable-setuid-sandbox',
+      '--window-size=1920,1080'
     ]
   });
 
@@ -108,8 +109,14 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
-    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForTimeout(3000);
+    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForTimeout(5000); // Increased wait time
+
+    // Scroll down progressively to ensure all sections load
+    for (let i = 0; i < 6; i++) {
+        await page.evaluate((y) => window.scrollTo(0, y), i * 500);
+        await page.waitForTimeout(1000);
+    }
 
     // Check login status
     if (page.url().includes('login') || page.url().includes('nlogin')) {
