@@ -74,8 +74,8 @@ async function refreshProfile(options = {}) {
       await page.waitForTimeout(2000);
 
       // Attempt to find the specific Resume Headline edit button
-      const resumeCard = page.locator('.card:has-text("Resume")');
-      const editBtn = resumeCard.locator('.edit, [class*="edit"]').first();
+      // Target the pencil icon element specifically
+      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit').first();
       
       let clicked = false;
       if (await editBtn.count() > 0) {
