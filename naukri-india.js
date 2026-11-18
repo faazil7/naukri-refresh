@@ -74,13 +74,22 @@ async function refreshProfile(options = {}) {
       await page.waitForTimeout(2000);
 
       // Attempt to find the specific Resume Headline edit button
-      // Target the pencil icon element specifically
       const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit').first();
       
       let clicked = false;
       if (await editBtn.count() > 0) {
-        await editBtn.first().click({ force: true });
-        clicked = true;
+        // Try clicking with retry logic if initial click fails
+        for (let i = 0; i < 3; i++) {
+            try {
+                await editBtn.first().click({ force: true });
+                clicked = true;
+                console.log('Clicked edit button specifically in Resume card.');
+                break;
+            } catch (e) {
+                console.log(`Click attempt ${i+1} failed, retrying...`);
+                await page.waitForTimeout(1000);
+            }
+        }
       } else {
         // Fallback to searching all edit buttons
         const editButtons = page.locator('.edit, [class*="edit"]');
@@ -104,7 +113,7 @@ async function refreshProfile(options = {}) {
       if (clicked) {
         await page.waitForTimeout(2000);
 
-        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea', { timeout: 5000 }).catch(() => null);
+        const textarea = await page.waitForSelector('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea', { timeout: 10000 }).catch(() => null);
         if (textarea) {
           let text = await textarea.inputValue();
           text = text.trim();
@@ -124,11 +133,18 @@ async function refreshProfile(options = {}) {
             refreshed = true;
             detailMsg = 'SUCCESS: Resume Headline updated and saved successfully!';
             console.log(detailMsg);
+          } else {
+              throw new Error('Save button not found');
           }
+        } else {
+           throw new Error('Modal opened, but textarea not found.');
         }
+      } else {
+        throw new Error('Could not locate Resume Headline edit button.');
       }
     } catch (err) {
       console.log('Resume Headline update failed:', err.message);
+      throw err;
     }
 
     await context.close();
