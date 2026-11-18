@@ -73,6 +73,16 @@ async function refreshProfile(options = {}) {
       });
       await page.waitForTimeout(2000);
 
+      // Log all found elements for debugging
+      const allElements = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll('.edit, [class*="edit"]')).map(el => ({
+              tagName: el.tagName,
+              className: el.className,
+              textContent: el.textContent ? el.textContent.trim() : ''
+          }));
+      });
+      console.log('All potential edit buttons found:', JSON.stringify(allElements));
+
       // Attempt to find the specific Resume Headline edit button
       const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit').first();
       
