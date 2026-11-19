@@ -19,12 +19,21 @@ async function launchBrowser(options = {}) {
   const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, {
     headless: isHeadless,
     viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    locale: 'en-US',
+    timezoneId: 'Asia/Kolkata',
+    extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://www.naukri.com/'
+    },
     args: [
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--window-size=1920,1080'
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--window-size=1920,1080',
+      '--lang=en-US,en'
     ]
   });
 
@@ -44,7 +53,7 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
-    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(10000); // Wait for potential redirects/lazy loads
 
     console.log('Current URL:', page.url());
@@ -85,8 +94,9 @@ async function refreshProfile(options = {}) {
       console.log('Sample elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
       // Attempt to find the specific Resume Headline edit button
-      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit, .icon').first();
-
+      // Target the container card that specifically contains "Resume" in its title
+      const resumeCard = page.locator('.card:has-text("Resume")');
+      const editBtn = resumeCard.locator('.edit, [class*="edit"], svg, i').first();
       
       let clicked = false;
       if (await editBtn.count() > 0) {
