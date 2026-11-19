@@ -73,18 +73,20 @@ async function refreshProfile(options = {}) {
       });
       await page.waitForTimeout(2000);
 
-      // Log all found elements for debugging
-      const allElements = await page.evaluate(() => {
-          return Array.from(document.querySelectorAll('.edit, [class*="edit"]')).map(el => ({
+      // Log ALL elements to see what is actually there, not just edit buttons
+      const allPageElements = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll('*')).map(el => ({
               tagName: el.tagName,
               className: el.className,
-              textContent: el.textContent ? el.textContent.trim() : ''
+              textContent: el.textContent ? el.textContent.trim().substring(0, 20) : ''
           }));
       });
-      console.log('All potential edit buttons found:', JSON.stringify(allElements));
+      console.log('ALL page elements count:', allPageElements.length);
+      console.log('Sample elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
       // Attempt to find the specific Resume Headline edit button
-      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit').first();
+      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg, .edit, .icon').first();
+
       
       let clicked = false;
       if (await editBtn.count() > 0) {
