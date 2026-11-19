@@ -82,6 +82,18 @@ async function refreshProfile(options = {}) {
       });
       await page.waitForTimeout(2000);
 
+      // Log the full page content to diagnose what is being seen
+      const content = await page.content();
+      console.log('Page content length:', content.length);
+      console.log('Page URL:', page.url());
+
+      // Check for iframes
+      const frames = page.frames();
+      console.log(`Number of frames: ${frames.length}`);
+      for (const frame of frames) {
+          console.log(`Frame: ${frame.name()} - ${frame.url()}`);
+      }
+
       // Log ALL elements to see what is actually there
       const allPageElements = await page.evaluate(() => {
           return Array.from(document.querySelectorAll('*')).map(el => ({
@@ -94,6 +106,8 @@ async function refreshProfile(options = {}) {
       console.log('Potential Resume elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
       // Attempt to find the specific Resume Headline edit button
+      // Increased timeout and wait for a stable state
+      await page.waitForLoadState('networkidle');
       const label = page.locator('text=/.*resume.*/i');
       const labelCount = await label.count();
       console.log(`Found ${labelCount} elements matching "resume" (case-insensitive)`);
