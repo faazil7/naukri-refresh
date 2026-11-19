@@ -93,25 +93,20 @@ async function refreshProfile(options = {}) {
       console.log('ALL page elements count:', allPageElements.length);
       console.log('Sample elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
-      // Attempt to find the specific Resume Headline edit button
-      // Target the container card that specifically contains "Resume" in its title
-      const resumeCard = page.locator('.card:has-text("Resume")');
-      const editBtn = resumeCard.locator('.edit, [class*="edit"], svg, i').first();
+      // Improved selector to find the Resume Headline edit button
+      const label = page.locator('span:has-text("Resume headline")');
+      const labelCount = await label.count();
+      console.log(`Found ${labelCount} elements matching "Resume headline"`);
+      
+      const resumeHeadlineEditBtn = label.locator('xpath=following-sibling::*[contains(@class, "edit")]').first();
+      const btnCount = await resumeHeadlineEditBtn.count();
+      console.log(`Found ${btnCount} potential edit buttons next to "Resume headline" label`);
       
       let clicked = false;
-      if (await editBtn.count() > 0) {
-        // Try clicking with retry logic if initial click fails
-        for (let i = 0; i < 3; i++) {
-            try {
-                await editBtn.first().click({ force: true });
-                clicked = true;
-                console.log('Clicked edit button specifically in Resume card.');
-                break;
-            } catch (e) {
-                console.log(`Click attempt ${i+1} failed, retrying...`);
-                await page.waitForTimeout(1000);
-            }
-        }
+      if (btnCount > 0) {
+        await resumeHeadlineEditBtn.click({ force: true });
+        clicked = true;
+        console.log('Clicked Resume Headline edit button.');
       } else {
         // Fallback to searching all edit buttons
         const editButtons = page.locator('.edit, [class*="edit"]');
