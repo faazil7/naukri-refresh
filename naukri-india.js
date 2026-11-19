@@ -82,21 +82,21 @@ async function refreshProfile(options = {}) {
       });
       await page.waitForTimeout(2000);
 
-      // Log ALL elements to see what is actually there, not just edit buttons
+      // Log ALL elements to see what is actually there
       const allPageElements = await page.evaluate(() => {
           return Array.from(document.querySelectorAll('*')).map(el => ({
               tagName: el.tagName,
               className: el.className,
-              textContent: el.textContent ? el.textContent.trim().substring(0, 20) : ''
-          }));
+              textContent: el.textContent ? el.textContent.trim() : ''
+          })).filter(e => e.textContent.length > 0 && e.textContent.length < 50);
       });
       console.log('ALL page elements count:', allPageElements.length);
-      console.log('Sample elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
+      console.log('Potential Resume elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
-      // Improved selector to find the Resume Headline edit button
-      const label = page.locator('span:has-text("Resume headline")');
+      // Attempt to find the specific Resume Headline edit button
+      const label = page.locator('text=/.*resume.*/i');
       const labelCount = await label.count();
-      console.log(`Found ${labelCount} elements matching "Resume headline"`);
+      console.log(`Found ${labelCount} elements matching "resume" (case-insensitive)`);
       
       const resumeHeadlineEditBtn = label.locator('xpath=following-sibling::*[contains(@class, "edit")]').first();
       const btnCount = await resumeHeadlineEditBtn.count();
