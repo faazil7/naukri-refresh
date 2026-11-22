@@ -94,52 +94,29 @@ async function refreshProfile(options = {}) {
           console.log(`Frame: ${frame.name()} - ${frame.url()}`);
       }
 
-      // Log ALL elements to see what is actually there
+      // Log ALL elements to see what is actually there, not just edit buttons
       const allPageElements = await page.evaluate(() => {
           return Array.from(document.querySelectorAll('*')).map(el => ({
               tagName: el.tagName,
-              className: el.className,
-              textContent: el.textContent ? el.textContent.trim() : ''
-          })).filter(e => e.textContent.length > 0 && e.textContent.length < 50);
+              className: el.className.replace(/\s+/g, ' '),
+              textContent: el.textContent ? el.textContent.substring(0, 30) : ''
+          })).filter(e => e.textContent.length > 0);
       });
       console.log('ALL page elements count:', allPageElements.length);
-      console.log('Potential Resume elements:', JSON.stringify(allPageElements.filter(e => e.textContent.toLowerCase().includes('resume')), null, 2));
 
-      // Attempt to find the specific Resume Headline edit button
-      // Increased timeout and wait for a stable state
-      await page.waitForLoadState('networkidle');
-      const label = page.locator('text=/.*resume.*/i');
-      const labelCount = await label.count();
-      console.log(`Found ${labelCount} elements matching "resume" (case-insensitive)`);
+      // Attempt to find the specific Resume Headline edit button using selectors from working version
+      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg').first();
       
-      const resumeHeadlineEditBtn = label.locator('xpath=following-sibling::*[contains(@class, "edit")]').first();
-      const btnCount = await resumeHeadlineEditBtn.count();
-      console.log(`Found ${btnCount} potential edit buttons next to "Resume headline" label`);
-      
+      let btnCount = 0;
       let clicked = false;
+      if (await editBtn.count() > 0) {
+        btnCount = await editBtn.count();
+        console.log(`Found ${btnCount} potential edit buttons`);
       if (btnCount > 0) {
         await resumeHeadlineEditBtn.click({ force: true });
         clicked = true;
         console.log('Clicked Resume Headline edit button.');
-      } else {
-        // Fallback to searching all edit buttons
-        const editButtons = page.locator('.edit, [class*="edit"]');
-        for (let i = 0; i < await editButtons.count(); i++) {
-           const btn = editButtons.nth(i);
-           await btn.click({ force: true }).catch(() => {});
-           await page.waitForTimeout(2000); // Wait longer for modal
-           const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
-           if (textarea) {
-             clicked = true;
-             console.log('Successfully found edit trigger via fallback.');
-             break;
-           } else {
-             const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
-             if (closeBtn) await closeBtn.click().catch(() => {});
-             await page.waitForTimeout(1000);
-           }
-        }
-      }
+
 
       if (clicked) {
         await page.waitForTimeout(2000);
