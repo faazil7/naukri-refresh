@@ -65,16 +65,16 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
-    // Use 'domcontentloaded' to avoid networkidle timeouts
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
     
-    // LESS RESTRICTIVE WAIT: Don't wait for specific classes that might change.
-    // Just wait for the body to be present.
+    // Check 1: After initial navigation
+    console.log('Check 1 - Content length:', (await page.content()).length);
+    
     await page.waitForSelector('body', { timeout: 60000 });
-    await page.waitForTimeout(10000); // Allow time for JS to render
+    await page.waitForTimeout(5000); 
 
-
-    console.log('Current URL:', page.url());
+    // Check 2: After basic load
+    console.log('Check 2 - Content length:', (await page.content()).length);
 
     // Dismiss intrusive popups if present
     try {
@@ -86,32 +86,12 @@ async function refreshProfile(options = {}) {
       }
     } catch (e) {}
     
-    // TAKE SCREENSHOT HERE to see what the bot actually sees in headless mode
+    // Check 3: After popup handling
+    console.log('Check 3 - Content length:', (await page.content()).length);
+    
     await page.screenshot({ path: 'headless-debug.png', fullPage: true }).catch(() => {});
     console.log('Screenshot taken to debug page load in headless mode.');
 
-    let refreshed = false;
-    let detailMsg = '';
-
-    // Debug: Log the final URL and a snippet of content if it fails
-    if (page.url().includes('login')) {
-      console.error('CRITICAL: Headless mode redirected to login. Page Content Snippet:');
-      const content = await page.content();
-      console.error(content.substring(0, 2000));
-    }
-    try {
-      // Force scroll to headline area
-      await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('*'));
-        const headlineEl = els.find(el => el.textContent && el.textContent.includes('Resume headline'));
-        if (headlineEl) headlineEl.scrollIntoView();
-      });
-      await page.waitForTimeout(2000);
-
-      // Log the full page content to diagnose what is being seen
-      const content = await page.content();
-      console.log('Page content length:', content.length);
-      console.log('Page URL:', page.url());
 
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
