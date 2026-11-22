@@ -33,7 +33,9 @@ async function launchBrowser(options = {}) {
       '--disable-gpu',
       '--disable-dev-shm-usage',
       // Hide the headless nature via argument
-      '--hide-scrollbars'
+      '--hide-scrollbars',
+      '--disable-http2', // Added from Gulf bot
+      '--ignore-certificate-errors' // Added from Gulf bot
     ],
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined
   };
