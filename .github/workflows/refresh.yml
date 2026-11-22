@@ -25,7 +25,8 @@ jobs:
 
       - name: Install Playwright Browsers & System Dependencies
         run: |
-          npx playwright install chromium --with-deps
+          npx playwright install-deps chromium
+          npx playwright install chromium
 
       - name: Run Profile Refresh
         run: xvfb-run --auto-servernum npm run refresh
