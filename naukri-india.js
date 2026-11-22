@@ -64,10 +64,18 @@ async function refreshProfile(options = {}) {
 
     console.log('Navigating to Naukri Profile page...');
     // Use 'domcontentloaded' to avoid networkidle timeouts
-    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // Explicitly wait for the profile card to load
-    await page.waitForSelector('.styles_card__hQJ63, .card', { timeout: 30000 });
-    await page.waitForTimeout(5000); 
+    await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    
+    // Significantly increase wait for the profile card to load
+    // Often in headless GHA, elements take longer or get lazy-loaded.
+    // Try to wait for the body to be available first, then look for the specific card.
+    await page.waitForLoadState('domcontentloaded');
+    try {
+        await page.waitForSelector('.styles_card__hQJ63, .card', { timeout: 60000 });
+    } catch (e) {
+        console.log('Timeout waiting for card. Proceeding anyway to debug...');
+    }
+    await page.waitForTimeout(10000); 
 
     console.log('Current URL:', page.url());
 
