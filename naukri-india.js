@@ -16,27 +16,37 @@ async function launchBrowser(options = {}) {
     fs.mkdirSync(config.USER_DATA_DIR, { recursive: true });
   }
 
-  const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, {
+  const launchOptions = {
     headless: isHeadless,
     viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-    locale: 'en-US',
-    timezoneId: 'Asia/Kolkata',
-    extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.naukri.com/'
-    },
+    // Use a more realistic, updated User-Agent
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     args: [
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
       '--window-size=1920,1080',
-      '--lang=en-US,en'
-    ]
-  });
+      '--disable-infobars',
+      '--disable-extensions',
+      '--disable-notifications',
+      '--mute-audio',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      // Hide the headless nature via argument
+      '--hide-scrollbars'
+    ],
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined
+  };
 
+  // In GitHub Actions, explicitly define executable path if standard detection fails
+  if (process.env.GITHUB_ACTIONS) {
+    const baseDir = '/home/runner/.cache/ms-playwright/chromium-1255/chrome-linux64/';
+    if (fs.existsSync(baseDir + 'chrome')) {
+      launchOptions.executablePath = baseDir + 'chrome';
+    }
+  }
+
+  const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, launchOptions);
   return context;
 }
 
@@ -53,8 +63,11 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
+    // Use 'domcontentloaded' to avoid networkidle timeouts
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForTimeout(10000); // Wait for potential redirects/lazy loads
+    // Explicitly wait for the profile card to load
+    await page.waitForSelector('.styles_card__hQJ63, .card', { timeout: 30000 });
+    await page.waitForTimeout(5000); 
 
     console.log('Current URL:', page.url());
 
@@ -67,12 +80,20 @@ async function refreshProfile(options = {}) {
         }
       }
     } catch (e) {}
+    
+    // TAKE SCREENSHOT HERE to see what the bot actually sees in headless mode
+    await page.screenshot({ path: 'headless-debug.png', fullPage: true }).catch(() => {});
+    console.log('Screenshot taken to debug page load in headless mode.');
 
     let refreshed = false;
     let detailMsg = '';
 
-    // Method: Target Resume Headline specifically
-    console.log('Attempting to update Resume Headline specifically...');
+    // Debug: Log the final URL and a snippet of content if it fails
+    if (page.url().includes('login')) {
+      console.error('CRITICAL: Headless mode redirected to login. Page Content Snippet:');
+      const content = await page.content();
+      console.error(content.substring(0, 2000));
+    }
     try {
       // Force scroll to headline area
       await page.evaluate(() => {
@@ -87,35 +108,41 @@ async function refreshProfile(options = {}) {
       console.log('Page content length:', content.length);
       console.log('Page URL:', page.url());
 
-      // Check for iframes
-      const frames = page.frames();
-      console.log(`Number of frames: ${frames.length}`);
-      for (const frame of frames) {
-          console.log(`Frame: ${frame.name()} - ${frame.url()}`);
-      }
-
-      // Log ALL elements to see what is actually there, not just edit buttons
-      const allPageElements = await page.evaluate(() => {
-          return Array.from(document.querySelectorAll('*')).map(el => ({
-              tagName: el.tagName,
-              className: el.className.replace(/\s+/g, ' '),
-              textContent: el.textContent ? el.textContent.substring(0, 30) : ''
-          })).filter(e => e.textContent.length > 0);
-      });
-      console.log('ALL page elements count:', allPageElements.length);
-
-      // Attempt to find the specific Resume Headline edit button using selectors from working version
-      const editBtn = page.locator('.card:has-text("Resume headline") .edit, .card:has-text("Resume headline") svg').first();
+    // Method: Target Resume Headline specifically
+    console.log('Attempting to update Resume Headline specifically...');
+    
+    // Try robust class-based selector first
+    let section = page.locator('.styles_card__hQJ63');
+    
+    // Fallback: Find section by text
+    if (await section.count() === 0) {
+        section = page.locator('div, section, .card').filter({ hasText: /Resume headline/i }).first();
+    }
+    
+    // Find all potential edit buttons within that section
+    const editButtons = section.locator('span, a, button, [class*="edit"]');
+    
+    let clicked = false;
+    for (let i = 0; i < await editButtons.count(); i++) {
+      const btn = editButtons.nth(i);
       
-      let btnCount = 0;
-      let clicked = false;
-      if (await editBtn.count() > 0) {
-        btnCount = await editBtn.count();
-        console.log(`Found ${btnCount} potential edit buttons`);
-      if (btnCount > 0) {
-        await resumeHeadlineEditBtn.click({ force: true });
+      // Try clicking
+      await btn.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(2000); // Wait for modal
+      
+      // Verify if the correct modal opened
+      const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+      if (textarea) {
         clicked = true;
-        console.log('Clicked Resume Headline edit button.');
+        console.log('Clicked edit button and verified Resume Headline modal opened.');
+        break;
+      } else {
+        // Close modal if it opened something else
+        const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+        if (closeBtn) await closeBtn.click().catch(() => {});
+        await page.waitForTimeout(1000);
+      }
+    }
 
 
       if (clicked) {

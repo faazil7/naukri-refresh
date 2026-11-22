@@ -112,7 +112,13 @@ async function refreshProfile(options = {}) {
 
     console.log('Navigating to Naukri Profile page...');
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForTimeout(10000); // Increased wait time to 10s
+    await page.waitForTimeout(15000); // Increased wait time
+    
+    // Scroll down progressively to ensure all sections load
+    for (let i = 0; i < 8; i++) {
+        await page.evaluate((y) => window.scrollTo(0, y), i * 600);
+        await page.waitForTimeout(1000);
+    }
 
     // Debug: Log the URL we landed on
     console.log('Current URL:', page.url());
@@ -211,35 +217,28 @@ async function refreshProfile(options = {}) {
       });
       console.log('All potential edit buttons found:', allEdits);
 
-      // Attempt to find the specific Resume Headline edit button
-      const resumeCard = page.locator('.card:has-text("Resume")');
-      const editBtn = resumeCard.locator('.edit, [class*="edit"]').first();
-      
-      let clicked = false;
-      if (await editBtn.count() > 0) {
-        await editBtn.first().click({ force: true });
-        clicked = true;
-        console.log('Clicked edit button specifically in Resume card.');
-      } else {
-        // Fallback: iterate and check if the modal contains the textarea
-        const editButtons = page.locator('.edit, [class*="edit"]');
-        for (let i = 0; i < await editButtons.count(); i++) {
-           const btn = editButtons.nth(i);
-           // Try clicking and check if a textarea appears
-           await btn.click();
-           await page.waitForTimeout(2000); // Wait longer for modal
-           const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
-           if (textarea) {
-             clicked = true;
-             break;
-           } else {
-             // Close modal
-             const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
-             if (closeBtn) await closeBtn.click().catch(() => {});
-             await page.waitForTimeout(1000);
-           }
-        }
-      }
+       // Specific fix for Naukri structure
+       const resumeCard = page.locator('.styles_card__hQJ63');
+       const editButtons = resumeCard.locator('.styles_edit-icon__NJ9to, .edit, [class*="edit"]');
+       
+       let clicked = false;
+       for (let i = 0; i < await editButtons.count(); i++) {
+         const btn = editButtons.nth(i);
+         // Try clicking and check if a textarea appears
+         await btn.click({force: true}).catch(() => {});
+         await page.waitForTimeout(2000); // Wait for modal
+         const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+         if (textarea) {
+           clicked = true;
+           break;
+         } else {
+           // Close modal if it opened something else
+           const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+           if (closeBtn) await closeBtn.click().catch(() => {});
+           await page.waitForTimeout(1000);
+         }
+       }
+
 
       if (clicked) {
         await page.waitForTimeout(2000);
