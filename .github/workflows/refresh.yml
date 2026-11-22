@@ -28,13 +28,13 @@ jobs:
           node node_modules/playwright-core/cli.js install chromium --with-deps
 
       - name: Run Profile Refresh
-        run: npm run india:refresh
+        run: npm run refresh
         env:
           NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
           NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
           HEADLESS: 'true'
           # Force dedicated session for India
-          INDIA_SESSION_DIR: './.naukri-india-session'
+          INDIA_SESSION_DIR: './.naukri-session'
 
       - name: Upload Debug Screenshot
         if: always()

@@ -1,3 +1,2 @@
-2026/11/22-21:11:09.777 4898 Reusing MANIFEST D:\experiments\naukri-refresh\.naukri-india-session\Default\Service Worker\Database/MANIFEST-000001
-2026/11/22-21:11:09.777 4898 Recovering log #3
-2026/11/22-21:11:09.778 4898 Reusing old log D:\experiments\naukri-refresh\.naukri-india-session\Default\Service Worker\Database/000003.log 
+2026/11/22-22:48:57.164 7814 Creating DB D:\experiments\naukri-refresh\.naukri-india-session\Default\Service Worker\Database since it was missing.
+2026/11/22-22:48:57.184 7814 Reusing MANIFEST D:\experiments\naukri-refresh\.naukri-india-session\Default\Service Worker\Database/MANIFEST-000001

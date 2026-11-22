@@ -1,12 +1,12 @@
-2026/11/22-21:12:58.952 4774 Reusing MANIFEST D:\experiments\naukri-refresh\.naukri-india-session\Default\Local Storage\leveldb/MANIFEST-000001
-2026/11/22-21:12:58.953 4774 Recovering log #61
-2026/11/22-21:12:58.954 4774 Level-0 table #65: started
-2026/11/22-21:12:58.964 4774 Level-0 table #65: 71224 bytes OK
-2026/11/22-21:12:58.965 4774 Recovering log #65
-2026/11/22-21:12:58.965 4774 Level-0 table #66: started
-2026/11/22-21:12:58.973 4774 Level-0 table #66: 71928 bytes OK
-2026/11/22-21:12:58.980 4774 Delete type=0 #61
-2026/11/22-21:12:58.980 4774 Delete type=0 #65
-2026/11/22-21:13:18.589 2bb0 Level-0 table #69: started
-2026/11/22-21:13:18.601 2bb0 Level-0 table #69: 71380 bytes OK
-2026/11/22-21:13:18.606 2bb0 Delete type=0 #67
+2026/11/22-22:49:49.073 2b34 Reusing MANIFEST D:\experiments\naukri-refresh\.naukri-india-session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/22-22:49:49.074 2b34 Recovering log #75
+2026/11/22-22:49:49.074 2b34 Level-0 table #78: started
+2026/11/22-22:49:49.084 2b34 Level-0 table #78: 79449 bytes OK
+2026/11/22-22:49:49.085 2b34 Recovering log #78
+2026/11/22-22:49:49.085 2b34 Level-0 table #79: started
+2026/11/22-22:49:49.092 2b34 Level-0 table #79: 122906 bytes OK
+2026/11/22-22:49:49.098 2b34 Delete type=0 #75
+2026/11/22-22:49:49.098 2b34 Delete type=0 #78
+2026/11/22-22:49:58.710 2e70 Level-0 table #82: started
+2026/11/22-22:49:58.725 2e70 Level-0 table #82: 71394 bytes OK
+2026/11/22-22:49:58.729 2e70 Delete type=0 #80
