@@ -18,13 +18,13 @@ async function launchBrowser(options = {}) {
 
     const launchOptions = {
         headless: isHeadless,
-        viewport: { width: 1920, height: 1080 },
+        viewport: { width: 1280, height: 800 },
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         args: [
             '--disable-blink-features=AutomationControlled',
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--window-size=1920,1080',
+            '--window-size=1280,800',
             '--disable-infobars',
             '--disable-extensions',
             '--disable-notifications',
@@ -34,16 +34,23 @@ async function launchBrowser(options = {}) {
             '--hide-scrollbars',
             '--disable-http2',
             '--ignore-certificate-errors',
-            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            '--disable-web-security'
         ]
     };
     
     // In GitHub Actions, explicitly define executable path
     if (process.env.GITHUB_ACTIONS) {
-        // Remove explicit executablePath to rely on standard Playwright detection
+        // Use a more generic user agent for CI to avoid being blocked
+        launchOptions.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
     }
 
-    const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, launchOptions);
+    const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, {
+        ...launchOptions,
+        // Ensure browser is NOT recognized as headless
+        locale: 'en-US',
+        timezoneId: 'Asia/Kolkata',
+        permissions: ['geolocation'],
+    });
 
 
   return context;
@@ -195,62 +202,94 @@ async function refreshProfile(options = {}) {
     // Debug: Log the page content structure to identify edit triggers
     const pageStructure = await page.evaluate(() => {
         // Log the ENTIRE body text to verify if the profile content is loaded
-        const bodyText = document.body.textContent || "";
-        console.log('Body Text Snippet:', bodyText.substring(0, 1000));
+        const bodyText = document.body.innerText || "";
+        console.log('Body Text Snippet:', bodyText.substring(0, 5000));
         
-        return Array.from(document.querySelectorAll('*'))
-            .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0)
+        // Log all elements with "edit" in class name
+        const editEls = Array.from(document.querySelectorAll('*'))
+            .filter(el => el.className && typeof el.className === 'string' && el.className.includes('edit'))
             .map(el => ({
                 tagName: el.tagName,
                 className: el.className,
-                textContent: el.textContent ? el.textContent.trim().substring(0, 50) : '',
-                id: el.id
+                isVisible: el.offsetWidth > 0 && el.offsetHeight > 0
             }));
+        console.log('All elements with "edit" in class name:', editEls);
+        
+        return editEls.length;
     });
-    console.log('Detected ALL visible elements count:', pageStructure.length);
+    console.log('Detected ALL elements with "edit" in class name count:', pageStructure);
 
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
     try {
     // Add extra sleep to ensure page is fully loaded in headless
-    await page.waitForTimeout(15000); // 15 seconds to be safe
+    await page.waitForTimeout(60000); // 60 seconds to be safe
     
     // Scroll to Resume Headline area
     await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight / 2);
+        window.scrollTo(0, document.body.scrollHeight);
+        window.scrollTo(0, 0);
     });
-    await page.waitForTimeout(5000); 
+    await page.waitForTimeout(20000); // 20 seconds
 
-      // Dump all edit buttons to console to see why they aren't matching
-      const allEdits = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll('.edit, [class*="edit"]')).map(el => ({
-            text: el.textContent,
-            className: el.className
-        }));
-      });
-      console.log('All potential edit buttons found:', allEdits);
+        // Dump all edit buttons to console to see why they aren't matching
+        const allEdits = await page.evaluate(() => {
+            return Array.from(document.querySelectorAll('*'))
+                .filter(el => el.className && typeof el.className === 'string' && el.className.includes('edit'))
+                .map(el => ({
+                    tagName: el.tagName,
+                    text: el.textContent,
+                    className: el.className
+                }));
+        });
+        console.log('All potential edit buttons found:', allEdits);
 
-       // Specific fix for Naukri structure
-       const resumeCard = page.locator('.styles_card__hQJ63');
-       const editButtons = resumeCard.locator('.styles_edit-icon__NJ9to, .edit, [class*="edit"]');
-       
-       let clicked = false;
-       for (let i = 0; i < await editButtons.count(); i++) {
-         const btn = editButtons.nth(i);
-         // Try clicking and check if a textarea appears
-         await btn.click({force: true}).catch(() => {});
-         await page.waitForTimeout(2000); // Wait for modal
-         const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
-         if (textarea) {
-           clicked = true;
-           break;
-         } else {
-           // Close modal if it opened something else
-           const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
-           if (closeBtn) await closeBtn.click().catch(() => {});
-           await page.waitForTimeout(1000);
-         }
-       }
+
+    let clicked = false;
+    
+    // Improved search: Identify the card by text, then find edit button inside it
+    const allCards = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('div'))
+            .filter(el => el.textContent && el.textContent.includes('Resume headline'))
+            .map(el => {
+                // Find all potential edit icons inside this card
+                const editButtons = Array.from(el.querySelectorAll('span, i, button, a'))
+                    .filter(btn => btn.className && typeof btn.className === 'string' && btn.className.includes('edit'));
+                return {
+                    tagName: el.tagName,
+                    className: el.className,
+                    editButtonCount: editButtons.length
+                };
+            });
+    });
+    console.log('Cards with "Resume headline" found:', allCards);
+    
+    // Click edit buttons found in cards
+    const editButtonsGlobal = page.locator('span[class*="edit"], i[class*="edit"], button[class*="edit"], .edit');
+    console.log('Total global edit buttons found:', await editButtonsGlobal.count());
+    
+    // Fallback if cards not found
+    console.log('Trying global search...');
+    for (let i = 0; i < await editButtonsGlobal.count(); i++) {
+        const btn = editButtonsGlobal.nth(i);
+        const box = await btn.boundingBox();
+        console.log('Attempting to click edit button', i, 'at', box);
+        
+        // Try clicking and check if a textarea appears
+        await btn.click({force: true}).catch(() => {});
+        await page.waitForTimeout(2000); // Wait for modal
+        const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+        if (textarea) {
+            clicked = true;
+            break;
+        } else {
+            // Close modal if it opened something else
+            const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+            if (closeBtn) await closeBtn.click().catch(() => {});
+            await page.waitForTimeout(1000);
+        }
+    }
+
 
 
       if (clicked) {
