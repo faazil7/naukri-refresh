@@ -16,17 +16,35 @@ async function launchBrowser(options = {}) {
     fs.mkdirSync(config.USER_DATA_DIR, { recursive: true });
   }
 
-  const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, {
-    headless: isHeadless,
-    viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--window-size=1920,1080'
-    ]
-  });
+    const launchOptions = {
+        headless: isHeadless,
+        viewport: { width: 1920, height: 1080 },
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        args: [
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--window-size=1920,1080',
+            '--disable-infobars',
+            '--disable-extensions',
+            '--disable-notifications',
+            '--mute-audio',
+            '--disable-gpu',
+            '--disable-dev-shm-usage',
+            '--hide-scrollbars',
+            '--disable-http2',
+            '--ignore-certificate-errors',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+        ]
+    };
+    
+    // In GitHub Actions, explicitly define executable path
+    if (process.env.GITHUB_ACTIONS) {
+        // Remove explicit executablePath to rely on standard Playwright detection
+    }
+
+    const context = await chromium.launchPersistentContext(config.USER_DATA_DIR, launchOptions);
+
 
   return context;
 }
@@ -194,19 +212,14 @@ async function refreshProfile(options = {}) {
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
     try {
-      await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(5000); // Increased wait before attempt
-
-      // Scroll to Resume Headline area
-      await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('*'));
-        const headlineEl = els.find(el => el.textContent && el.textContent.includes('Resume headline'));
-        if (headlineEl) {
-            headlineEl.scrollIntoView();
-            console.log('Scrolled to headline');
-        }
-      });
-      await page.waitForTimeout(2000);
+    // Add extra sleep to ensure page is fully loaded in headless
+    await page.waitForTimeout(15000); // 15 seconds to be safe
+    
+    // Scroll to Resume Headline area
+    await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight / 2);
+    });
+    await page.waitForTimeout(5000); 
 
       // Dump all edit buttons to console to see why they aren't matching
       const allEdits = await page.evaluate(() => {
