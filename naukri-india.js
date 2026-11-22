@@ -65,6 +65,7 @@ async function refreshProfile(options = {}) {
     const page = context.pages()[0] || await context.newPage();
 
     console.log('Navigating to Naukri Profile page...');
+    // Use 'domcontentloaded' to avoid networkidle timeouts
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
     
     // Check 1: After initial navigation
@@ -92,44 +93,42 @@ async function refreshProfile(options = {}) {
     await page.screenshot({ path: 'headless-debug.png', fullPage: true }).catch(() => {});
     console.log('Screenshot taken to debug page load in headless mode.');
 
+    let refreshed = false;
+    let detailMsg = '';
 
-    // Method: Target Resume Headline specifically
-    console.log('Attempting to update Resume Headline specifically...');
-    
-    // Search in main page AND all iframes
-    let editBtn;
-    let clicked = false;
+    try {
+      // Search in main page AND all iframes
+      let clicked = false;
 
-    for (const frame of [page, ...page.frames()]) {
-        // Try to find the section by text in this frame
-        const section = frame.locator('div, section, .card, [class*="card"]').filter({ hasText: /Resume headline/i }).first();
-        
-        // Find edit button within that section
-        const potentialBtns = section.locator('span, a, button, [class*="edit"]');
-        
-        for (let i = 0; i < await potentialBtns.count(); i++) {
-          const btn = potentialBtns.nth(i);
+      for (const frame of [page, ...page.frames()]) {
+          // Try to find the section by text in this frame
+          const section = frame.locator('div, section, .card, [class*="card"]').filter({ hasText: /Resume headline/i }).first();
           
-          // Try clicking
-          await btn.click({ force: true }).catch(() => {});
-          await page.waitForTimeout(2000); // Wait for modal
+          // Find edit button within that section
+          const potentialBtns = section.locator('span, a, button, [class*="edit"]');
           
-          // Verify if the correct modal opened
-          const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
-          if (textarea) {
-            clicked = true;
-            console.log('Clicked edit button in frame and verified Resume Headline modal opened.');
-            break;
-          } else {
-            // Close modal if it opened something else
-            const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
-            if (closeBtn) await closeBtn.click().catch(() => {});
-            await page.waitForTimeout(1000);
+          for (let i = 0; i < await potentialBtns.count(); i++) {
+            const btn = potentialBtns.nth(i);
+            
+            // Try clicking
+            await btn.click({ force: true }).catch(() => {});
+            await page.waitForTimeout(2000); // Wait for modal
+            
+            // Verify if the correct modal opened
+            const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+            if (textarea) {
+              clicked = true;
+              console.log('Clicked edit button in frame and verified Resume Headline modal opened.');
+              break;
+            } else {
+              // Close modal if it opened something else
+              const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+              if (closeBtn) await closeBtn.click().catch(() => {});
+              await page.waitForTimeout(1000);
+            }
           }
-        }
-        if (clicked) break;
-    }
-
+          if (clicked) break;
+      }
 
       if (clicked) {
         await page.waitForTimeout(2000);
@@ -158,7 +157,7 @@ async function refreshProfile(options = {}) {
               throw new Error('Save button not found');
           }
         } else {
-           throw new Error('Modal opened, but textarea not found.');
+            throw new Error('Modal opened, but textarea not found.');
         }
       } else {
         throw new Error('Could not locate Resume Headline edit button.');
