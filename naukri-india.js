@@ -68,16 +68,11 @@ async function refreshProfile(options = {}) {
     // Use 'domcontentloaded' to avoid networkidle timeouts
     await page.goto(config.NAUKRI_PROFILE_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
     
-    // Significantly increase wait for the profile card to load
-    // Often in headless GHA, elements take longer or get lazy-loaded.
-    // Try to wait for the body to be available first, then look for the specific card.
-    await page.waitForLoadState('domcontentloaded');
-    try {
-        await page.waitForSelector('.styles_card__hQJ63, .card', { timeout: 60000 });
-    } catch (e) {
-        console.log('Timeout waiting for card. Proceeding anyway to debug...');
-    }
-    await page.waitForTimeout(10000); 
+    // LESS RESTRICTIVE WAIT: Don't wait for specific classes that might change.
+    // Just wait for the body to be present.
+    await page.waitForSelector('body', { timeout: 60000 });
+    await page.waitForTimeout(10000); // Allow time for JS to render
+
 
     console.log('Current URL:', page.url());
 
@@ -121,37 +116,38 @@ async function refreshProfile(options = {}) {
     // Method: Target Resume Headline specifically
     console.log('Attempting to update Resume Headline specifically...');
     
-    // Try robust class-based selector first
-    let section = page.locator('.styles_card__hQJ63');
-    
-    // Fallback: Find section by text
-    if (await section.count() === 0) {
-        section = page.locator('div, section, .card').filter({ hasText: /Resume headline/i }).first();
-    }
-    
-    // Find all potential edit buttons within that section
-    const editButtons = section.locator('span, a, button, [class*="edit"]');
-    
+    // Search in main page AND all iframes
+    let editBtn;
     let clicked = false;
-    for (let i = 0; i < await editButtons.count(); i++) {
-      const btn = editButtons.nth(i);
-      
-      // Try clicking
-      await btn.click({ force: true }).catch(() => {});
-      await page.waitForTimeout(2000); // Wait for modal
-      
-      // Verify if the correct modal opened
-      const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
-      if (textarea) {
-        clicked = true;
-        console.log('Clicked edit button and verified Resume Headline modal opened.');
-        break;
-      } else {
-        // Close modal if it opened something else
-        const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
-        if (closeBtn) await closeBtn.click().catch(() => {});
-        await page.waitForTimeout(1000);
-      }
+
+    for (const frame of [page, ...page.frames()]) {
+        // Try to find the section by text in this frame
+        const section = frame.locator('div, section, .card, [class*="card"]').filter({ hasText: /Resume headline/i }).first();
+        
+        // Find edit button within that section
+        const potentialBtns = section.locator('span, a, button, [class*="edit"]');
+        
+        for (let i = 0; i < await potentialBtns.count(); i++) {
+          const btn = potentialBtns.nth(i);
+          
+          // Try clicking
+          await btn.click({ force: true }).catch(() => {});
+          await page.waitForTimeout(2000); // Wait for modal
+          
+          // Verify if the correct modal opened
+          const textarea = await page.$('textarea#resumeHeadlineTxt, textarea[id*="Headline"], textarea');
+          if (textarea) {
+            clicked = true;
+            console.log('Clicked edit button in frame and verified Resume Headline modal opened.');
+            break;
+          } else {
+            // Close modal if it opened something else
+            const closeBtn = await page.$('.crossIcon, .close-icon, button:has-text("Cancel")');
+            if (closeBtn) await closeBtn.click().catch(() => {});
+            await page.waitForTimeout(1000);
+          }
+        }
+        if (clicked) break;
     }
 
 
