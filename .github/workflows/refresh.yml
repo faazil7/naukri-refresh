@@ -25,8 +25,8 @@ jobs:
 
       - name: Install Playwright Browsers & System Dependencies
         run: |
-          npx playwright install-deps
-          npx playwright install
+          sudo npx playwright install-deps
+          sudo npx playwright install
 
       - name: Run Profile Refresh
         run: xvfb-run --auto-servernum npm run refresh
